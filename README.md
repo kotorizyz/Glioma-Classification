@@ -9,5 +9,5 @@ We use the self-attention UNet. To train the model, please use
 for a quick check.
 
 To do binary classification, please use  
-`python predict.py`
+`python predict.py`  
 to get masks of images.
