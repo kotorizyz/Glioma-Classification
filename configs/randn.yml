@@ -17,12 +17,6 @@ model:
     ema: True
     resamp_with_conv: True
 
-diffusion:
-    beta_schedule: linear
-    beta_start: 0.0001
-    beta_end: 0.02
-    num_diffusion_timesteps: 1000
-
 training:
     batch_size: 4
     n_epochs: 100
