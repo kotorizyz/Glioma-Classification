@@ -12,10 +12,11 @@ import matplotlib.pyplot as plt
 
 from model.unet import Model
 from dataset.randn import randn
+from dataset.upenn import upenn
 
 torch.set_printoptions(sci_mode=False)
 
-gpus = [0]
+gpus = [4,5]
 
 def parse_args_and_config():
     parser = argparse.ArgumentParser(description=globals()["__doc__"])
@@ -67,13 +68,15 @@ def main():
     optimizer = optim.Adam(model.parameters(), lr=config.optim.lr)
     criterion = nn.CrossEntropyLoss()
     
-    dataset = randn().all_data
+    dataset = upenn().all_data
     dataloader = Data.DataLoader(dataset=dataset, batch_size=config.training.batch_size, shuffle=True)
+    print(dataset.shape)
     
     for epoch in range(EPOCH):
         model.train()
         total_loss = 0.0
         for batch_idx, data in enumerate(dataloader):
+            # print(batch_idx, data.shape)
             images = data[:,:1].to(device=config.device) #[BATCH, CHANNEL, HEIGHT, WIDTH]
             masks = data[:, 1].to(device=config.device).to(torch.long)  #[BATCH, HEIGHT, WIDTH]
             optimizer.zero_grad()
@@ -83,10 +86,11 @@ def main():
             loss.backward()
             optimizer.step()
             total_loss += loss.item()
+            # print(loss.item())
         
         print(f"Epoch [{epoch+1}/{EPOCH}], Loss: {total_loss:.4f}")
-        if epoch % 10 == 9:
-            torch.save(model.state_dict(), f'./pth/randn_{epoch+1}.pth')
+        # if epoch % 10 == 9:
+        torch.save(model.state_dict(), f'./pth/upenn_{epoch+1}.pth')
 
 if __name__ == "__main__":
     sys.exit(main())
