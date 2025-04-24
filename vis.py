@@ -25,13 +25,19 @@ sorted_masks = sorted(
     key=lambda x: int(re.search(r"UPENN-GBM-(\d+)_", x).group(1))
 )
 print(len(sorted_masks))
-file = np.load(folder_path+sorted_masks[0])
-print(file.shape)
+for i in range(10):
+    file = np.load(folder_path+sorted_masks[i])#.astype(np.int32)
+    # print(np.bincount(file.reshape(-1)))
+    plt.imsave(f'mask_{i}.png', file[:, :, 40], cmap='gray')
 
-# folder_path = '/data/yaozhi/segmentation/data/UPENN_GBM/UPENN-GBM-NIfTI/UPENN-GBM/Processed-files/flair_imgs'
-# npy_files = [f for f in os.listdir(folder_path) if f.endswith('.npy')]
-# sorted_files = sorted(
-#     npy_files,
-#     key=lambda x: int(re.search(r"UPENN-GBM-(\d+)_", x).group(1))
-# )
-# print(len(sorted_files))
+folder_path = '/data/yaozhi/segmentation/data/UPENN_GBM/UPENN-GBM-NIfTI/UPENN-GBM/Processed-files/flair_imgs/'
+npy_files = [f for f in os.listdir(folder_path) if f.endswith('.npy')]
+sorted_files = sorted(
+    npy_files,
+    key=lambda x: int(re.search(r"UPENN-GBM-(\d+)_", x).group(1))
+)
+print(len(sorted_files))
+for i in range(10):
+    file = np.load(folder_path+sorted_files[i])#.astype(np.int32)
+    # print(np.bincount(file.reshape(-1)))
+    plt.imsave(f'image_{i}.png', file[:, :, 40], cmap='gray')

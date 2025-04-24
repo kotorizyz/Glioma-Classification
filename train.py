@@ -57,7 +57,6 @@ def dict2namespace(config):
         setattr(namespace, key, new_value)
     return namespace
 
-
 def main():
     args, config = parse_args_and_config()
     EPOCH = config.training.n_epochs

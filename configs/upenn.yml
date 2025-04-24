@@ -7,7 +7,7 @@ data:
 
 model:
     in_channels: 1
-    out_ch: 2
+    out_ch: 5
     ch: 128
     ch_mult: [1, 2, 4]
     num_res_blocks: 2
