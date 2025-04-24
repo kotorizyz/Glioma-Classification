@@ -8,4 +8,4 @@ We use the self-attention UNet. To train the model, please use
 `python train.py --config xxxx.yml`  
 
 To do binary classification, please use  
-`python predict.py`  
+`python predict.py --config xxxx.yml`  
