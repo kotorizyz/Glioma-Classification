@@ -62,7 +62,7 @@ def main():
     args, config = parse_args_and_config()
     model = Model(config).to(device=config.device)
     model = torch.nn.DataParallel(model, device_ids=gpus)
-    model.load_state_dict(torch.load('pth/upenn_10.pth', map_location=config.device))
+    model.load_state_dict(torch.load('pth/upenn_50.pth', map_location=config.device))
     model.eval()
     
     dataset = upenn(train=False).all_data
@@ -72,12 +72,13 @@ def main():
         for batch_idx, data in enumerate(dataloader):
             images = data[:,:1].to(device=config.device) #[BATCH, CHANNEL, HEIGHT, WIDTH]
             predict_masks = model(images).to(torch.float32) #[BATCH, NUM_CLASSES, HEIGHT, WIDTH]
-            plt.imsave('mask.png', predict_masks[0, 1].cpu().numpy(), cmap='gray')
-            plt.imsave('image.png', images[0, 0].cpu().numpy(), cmap='gray')
-            plt.imsave('ground_truth.png', data[0, 1].cpu().numpy(), cmap='gray')
+            for i in range(8):
+                plt.imsave(f'predict_{i}.png', torch.argmax(predict_masks[i], dim=0).cpu().numpy(), cmap='gray')
+                plt.imsave(f'image_{i}.png', images[i, 0].cpu().numpy(), cmap='gray')
+                plt.imsave(f'GT_{i}.png', data[i, 1].cpu().numpy(), cmap='gray')
             loss = nn.CrossEntropyLoss()(predict_masks, data[:, 1].to(device=config.device).to(torch.long))
-            print(loss.item())
-            quit()
+            print('loss =',loss.item())
+            break
 
 if __name__ == "__main__":
     sys.exit(main())
