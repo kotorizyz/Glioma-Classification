@@ -16,7 +16,7 @@ from dataset.upenn import upenn
 
 torch.set_printoptions(sci_mode=False)
 
-gpus = [4]
+gpus = [6]
 
 def parse_args_and_config():
     parser = argparse.ArgumentParser(description=globals()["__doc__"])
@@ -57,28 +57,63 @@ def dict2namespace(config):
         setattr(namespace, key, new_value)
     return namespace
 
+def evaluate_segmentation(output, ground_truth, num_classes):
+    """
+    output: Tensor of shape [BATCH_SIZE, NUM_CLASSES, HEIGHT, WIDTH] (raw logits or probs)
+    ground_truth: Tensor of shape [BATCH_SIZE, HEIGHT, WIDTH] (class indices 0~NUM_CLASSES-1)
+    num_classes: int, total number of classes
+    """
+
+    pred = torch.argmax(output, dim=1)  # [BATCH_SIZE, HEIGHT, WIDTH]
+
+    correct = (pred == ground_truth).float()
+    pixel_accuracy = correct.sum() / correct.numel()
+
+    iou_list = []
+    for cls in range(num_classes):
+        pred_cls = (pred == cls)
+        gt_cls = (ground_truth == cls)
+        intersection = (pred_cls & gt_cls).sum().float()
+        union = (pred_cls | gt_cls).sum().float()
+        if union < 1:
+            iou = torch.tensor(1.0, device=output.device)
+        else:
+            iou = intersection / union
+        iou_list.append(iou)
+
+    mean_iou = torch.mean(torch.stack(iou_list)) if iou_list else torch.tensor(0.0)
+
+    return pixel_accuracy.item(), mean_iou.item()
+
 
 def main():
     args, config = parse_args_and_config()
     model = Model(config).to(device=config.device)
     model = torch.nn.DataParallel(model, device_ids=gpus)
+    # load which model
     model.load_state_dict(torch.load('pth/upenn_50.pth', map_location=config.device))
     model.eval()
     
     dataset = upenn(train=False).all_data
     dataloader = Data.DataLoader(dataset=dataset, batch_size=config.training.batch_size, shuffle=True)
     
+    pixel_accuracy = 0
+    mean_iou = 0
+
     with torch.no_grad():
         for batch_idx, data in enumerate(dataloader):
             images = data[:,:1].to(device=config.device) #[BATCH, CHANNEL, HEIGHT, WIDTH]
             predict_masks = model(images).to(torch.float32) #[BATCH, NUM_CLASSES, HEIGHT, WIDTH]
-            for i in range(8):
-                plt.imsave(f'predict_{i}.png', torch.argmax(predict_masks[i], dim=0).cpu().numpy(), cmap='gray')
-                plt.imsave(f'image_{i}.png', images[i, 0].cpu().numpy(), cmap='gray')
-                plt.imsave(f'GT_{i}.png', data[i, 1].cpu().numpy(), cmap='gray')
-            loss = nn.CrossEntropyLoss()(predict_masks, data[:, 1].to(device=config.device).to(torch.long))
-            print('loss =',loss.item())
-            break
+            ground_truth = data[:, 1].to(device=config.device).to(torch.long)
+            pixel_accuracy_i, mean_iou_i = evaluate_segmentation(predict_masks, ground_truth, config.model.out_ch)
+            pixel_accuracy += pixel_accuracy_i
+            mean_iou += mean_iou_i
+            # print(mean_iou_i)
+        pixel_accuracy /= len(dataloader)
+        mean_iou /= len(dataloader)
+        print(f"Pixel Accuracy: {pixel_accuracy:.4f}")
+        print(f"Mean IoU: {mean_iou:.4f}")
+
 
 if __name__ == "__main__":
     sys.exit(main())
